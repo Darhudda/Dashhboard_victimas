@@ -1,0 +1,20 @@
+# Carpetas y archivos de Python que no necesitas subir
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+DataViz_venv/
+.venv/
+env/
+ENV/
+venv/
+
+# Archivos temporales o de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración personales
+*.env
+*.ipynb_checkpoints/
