@@ -8,7 +8,7 @@ from pymongo import MongoClient
 
 # Configuración de la página
 st.set_page_config(page_title="Mapa", layout="wide")
-st.title("🗺️ Mapa Interactivo - Víctimas por Departamento")
+st.title("Mapa Interactivo - Víctimas por Departamento")
 
 # Conexión a MongoDB
 client = MongoClient("mongodb+srv://elianarm:20062004@cluster0.9daxwsg.mongodb.net/?retryWrites=true&w=majority")

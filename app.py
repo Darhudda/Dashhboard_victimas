@@ -49,7 +49,7 @@ if selected == "Inicio":
     ---
     """)
 
-    st.markdown("### 🔎 Vista preliminar de la base de datos:")
+    st.markdown("### Vista preliminar de la base de datos:")
     st.dataframe(data)
 
     st.info("Utiliza el menú de la izquierda para acceder al **Mapa Interactivo**, al **Dashboard de Análisis** o a las **Consultas específicas** sobre los datos.")

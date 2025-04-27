@@ -34,7 +34,7 @@ col1, col2, col3 = st.columns(3)
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    total_victimas = 12,853,357 
+    total_victimas = 12853357 
     st.markdown(f"""
     <div style="background-color: #4A90E2; padding: 15px; border-radius: 10px; text-align: center;">
         <p style="color: white; font-size:16px; margin:0;">Total de Víctimas</p>
