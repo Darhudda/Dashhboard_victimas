@@ -65,22 +65,14 @@ hecho_sel = st.sidebar.selectbox("Selecciona un hecho victimizante (o General)",
 # === Gráficos principales ===
 col4, col5 = st.columns(2)
 
+# === Serie de tiempo con filtro por hecho victimizante ===
 with col4:
-    st.subheader("Serie de Tiempo: Víctimas Totales por Año")
-
-    if hecho_sel == "General":
-        serie = data.groupby("Ano")["total"].sum().reset_index()
-    else:
-        serie = data[data["HECHO"] == hecho_sel].groupby("Ano")["total"].sum().reset_index()
-
-    serie = serie[pd.to_numeric(serie["Ano"], errors="coerce").notnull()]
-    serie["Ano"] = serie["Ano"].astype(int)
-    serie = serie[serie["Ano"] <= 2025]
-
-    fig = px.line(serie, x="Ano", y="total", markers=True,
-                  labels={"Ano": "Año", "total": "Total de Víctimas"},
-                  title=f"Serie de Tiempo - {hecho_sel}")
+    top_hechos_ano = data_filtrada.groupby("HECHO")["total"].sum().sort_values(ascending=True).tail(5)
+    st.subheader(f"Top 5 hechos victimizantes en {año_sel}")
+    fig = px.bar(top_hechos_ano, x=top_hechos_ano.values, y=top_hechos_ano.index,
+                 orientation="h", labels={"x": "Víctimas", "y": "HECHO"})
     st.plotly_chart(fig, use_container_width=True)
+
 
 with col5:
     top_hechos_mongo = collection.aggregate([
@@ -100,10 +92,32 @@ with col5:
 col6, col7 = st.columns(2)
 
 with col6:
-    top_hechos_ano = data_filtrada.groupby("HECHO")["total"].sum().sort_values(ascending=True).tail(5)
-    st.subheader(f"Top 5 hechos victimizantes en {año_sel}")
-    fig = px.bar(top_hechos_ano, x=top_hechos_ano.values, y=top_hechos_ano.index,
-                 orientation="h", labels={"x": "Víctimas", "y": "HECHO"})
+    st.subheader("Serie de Tiempo: Víctimas Totales por Año")
+
+    # Aquí usamos toda la colección sin filtrar por año_sel
+    if hecho_sel == "General":
+        serie = pd.DataFrame(list(collection.aggregate([
+            {"$group": {"_id": "$Ano", "total": {"$sum": "$total"}}},
+            {"$sort": {"_id": 1}}
+        ])))
+        serie.rename(columns={"_id": "Ano"}, inplace=True)
+    else:
+        serie = pd.DataFrame(list(collection.aggregate([
+            {"$match": {"HECHO": hecho_sel}},
+            {"$group": {"_id": "$Ano", "total": {"$sum": "$total"}}},
+            {"$sort": {"_id": 1}}
+        ])))
+        serie.rename(columns={"_id": "Ano"}, inplace=True)
+
+    # Limitar hasta el año 2025
+    serie = serie[pd.to_numeric(serie["Ano"], errors="coerce").notnull()]
+    serie["Ano"] = serie["Ano"].astype(int)
+    serie = serie[serie["Ano"] <= 2025]
+
+    # Gráfico
+    fig = px.line(serie, x="Ano", y="total", markers=True,
+                  labels={"Ano": "Año", "total": "Total de Víctimas"},
+                  title=f"Serie de Tiempo - {hecho_sel}")
     st.plotly_chart(fig, use_container_width=True)
 
 with col7:
