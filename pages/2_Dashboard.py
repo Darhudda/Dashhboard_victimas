@@ -23,8 +23,6 @@ data = pd.DataFrame(list(collection.find(
     {"Ano": año_sel},
     {"_id": 0}
 )))
-# esto para los kpis estaticos
-data_total = pd.DataFrame(list(collection.find({}, {"_id": 0})))
 
 # Crear data_filtrada (para que funcione todo después)
 data_filtrada = data.copy()
@@ -32,8 +30,11 @@ data_filtrada = data.copy()
 # === KPIs Mejorados en Tarjetas ===
 col1, col2, col3 = st.columns(3)
 
+# === KPIs Mejorados en Tarjetas ===
+col1, col2, col3 = st.columns(3)
+
 with col1:
-    total_victimas = int(data_total["total"].sum())
+    total_victimas = 12,853,357 
     st.markdown(f"""
     <div style="background-color: #4A90E2; padding: 15px; border-radius: 10px; text-align: center;">
         <p style="color: white; font-size:16px; margin:0;">Total de Víctimas</p>
@@ -42,7 +43,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    total_hechos = data_total["HECHO"].nunique()
+    total_hechos = 16
     st.markdown(f"""
     <div style="background-color: #F5A623; padding: 15px; border-radius: 10px; text-align: center;">
         <p style="color: white; font-size:16px; margin:0;">Tipos de Hechos</p>
@@ -51,13 +52,14 @@ with col2:
     """, unsafe_allow_html=True)
 
 with col3:
-    total_departamentos = data_total["DEPARTAMENTO_OCU"].nunique()
+    total_departamentos = 33
     st.markdown(f"""
     <div style="background-color: #7ED321; padding: 15px; border-radius: 10px; text-align: center;">
         <p style="color: white; font-size:16px; margin:0;">Departamentos Afectados</p>
         <p style="color: white; font-size:22px; font-weight:bold; margin:0;">{total_departamentos}</p>
     </div>
     """, unsafe_allow_html=True)
+
 
 # --------------------------------------------------------------------
 # Filtro adicional de hecho victimizante
