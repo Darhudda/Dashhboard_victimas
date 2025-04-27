@@ -23,6 +23,8 @@ data = pd.DataFrame(list(collection.find(
     {"Ano": año_sel},
     {"_id": 0}
 )))
+# esto para los kpis estaticos
+data_total = pd.DataFrame(list(collection.find({}, {"_id": 0})))
 
 # Crear data_filtrada (para que funcione todo después)
 data_filtrada = data.copy()
@@ -31,7 +33,7 @@ data_filtrada = data.copy()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    total_victimas = int(data["total"].sum())
+    total_victimas = int(data_total["total"].sum())
     st.markdown(f"""
     <div style="background-color: #4A90E2; padding: 15px; border-radius: 10px; text-align: center;">
         <p style="color: white; font-size:16px; margin:0;">Total de Víctimas</p>
@@ -40,7 +42,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
-    total_hechos = data["HECHO"].nunique()
+    total_hechos = data_total["HECHO"].nunique()
     st.markdown(f"""
     <div style="background-color: #F5A623; padding: 15px; border-radius: 10px; text-align: center;">
         <p style="color: white; font-size:16px; margin:0;">Tipos de Hechos</p>
@@ -49,7 +51,7 @@ with col2:
     """, unsafe_allow_html=True)
 
 with col3:
-    total_departamentos = data["DEPARTAMENTO_OCU"].nunique()
+    total_departamentos = data_total["DEPARTAMENTO_OCU"].nunique()
     st.markdown(f"""
     <div style="background-color: #7ED321; padding: 15px; border-radius: 10px; text-align: center;">
         <p style="color: white; font-size:16px; margin:0;">Departamentos Afectados</p>
@@ -67,33 +69,7 @@ col4, col5 = st.columns(2)
 
 # === Serie de tiempo con filtro por hecho victimizante ===
 with col4:
-    top_hechos_ano = data_filtrada.groupby("HECHO")["total"].sum().sort_values(ascending=True).tail(5)
-    st.subheader(f"Top 5 hechos victimizantes en {año_sel}")
-    fig = px.bar(top_hechos_ano, x=top_hechos_ano.values, y=top_hechos_ano.index,
-                 orientation="h", labels={"x": "Víctimas", "y": "HECHO"})
-    st.plotly_chart(fig, use_container_width=True)
-
-
-with col5:
-    top_hechos_mongo = collection.aggregate([
-        {"$group": {"_id": "$HECHO", "total": {"$sum": "$total"}}},
-        {"$sort": {"total": -1}},
-        {"$limit": 5}
-    ])
-    df_top_hechos = pd.DataFrame(top_hechos_mongo).rename(columns={"_id": "HECHO"})
-
-    st.subheader("Top 5 Hechos Victimizantes")
-    fig_top_hechos = px.bar(df_top_hechos, x="total", y="HECHO", orientation="h",
-                            color="HECHO", labels={"total": "Total de Víctimas"},
-                            height=400)
-    st.plotly_chart(fig_top_hechos, use_container_width=True)
-
-# === Gráficos secundarios ===
-col6, col7 = st.columns(2)
-
-with col6:
-    st.subheader("Serie de Tiempo: Víctimas Totales por Año")
-
+    
     # Aquí usamos toda la colección sin filtrar por año_sel
     if hecho_sel == "General":
         serie = pd.DataFrame(list(collection.aggregate([
@@ -120,6 +96,31 @@ with col6:
                   title=f"Serie de Tiempo - {hecho_sel}")
     st.plotly_chart(fig, use_container_width=True)
 
+
+
+with col5:
+    top_hechos_mongo = collection.aggregate([
+        {"$group": {"_id": "$HECHO", "total": {"$sum": "$total"}}},
+        {"$sort": {"total": -1}},
+        {"$limit": 5}
+    ])
+    df_top_hechos = pd.DataFrame(top_hechos_mongo).rename(columns={"_id": "HECHO"})
+
+    st.subheader("Top 5 Hechos Victimizantes")
+    fig_top_hechos = px.bar(df_top_hechos, x="total", y="HECHO", orientation="h",
+                            color="HECHO", labels={"total": "Total de Víctimas"},
+                            height=400)
+    st.plotly_chart(fig_top_hechos, use_container_width=True)
+
+# === Gráficos secundarios ===
+col6, col7 = st.columns(2)
+
+with col6:
+    desplazamiento_tipo = data_filtrada.groupby("TIPO_DESPLAZAMIENTO")["total"].sum().sort_values(ascending=False)
+    st.subheader(f"Distribución por tipo de desplazamiento en {año_sel}")
+    fig = px.pie(names=desplazamiento_tipo.index, values=desplazamiento_tipo.values)
+    st.plotly_chart(fig, use_container_width=True)
+
 with col7:
     top_departamentos = data_filtrada.groupby("DEPARTAMENTO_OCU")["total"].sum().sort_values(ascending=False).head(5)
     st.subheader(f"Top 5 departamentos con más víctimas en {año_sel}")
@@ -131,10 +132,12 @@ with col7:
 col8, col9 = st.columns(2)
 
 with col8:
-    desplazamiento_tipo = data_filtrada.groupby("TIPO_DESPLAZAMIENTO")["total"].sum().sort_values(ascending=False)
-    st.subheader(f"Distribución por tipo de desplazamiento en {año_sel}")
-    fig = px.pie(names=desplazamiento_tipo.index, values=desplazamiento_tipo.values)
+    top_hechos_ano = data_filtrada.groupby("HECHO")["total"].sum().sort_values(ascending=True).tail(5)
+    st.subheader(f"Top 5 hechos victimizantes en {año_sel}")
+    fig = px.bar(top_hechos_ano, x=top_hechos_ano.values, y=top_hechos_ano.index,
+                 orientation="h", labels={"x": "Víctimas", "y": "HECHO"})
     st.plotly_chart(fig, use_container_width=True)
+
 
 with col9:
     top_municipios = data_filtrada.groupby("MUNICIPIO_OCU")["total"].sum().sort_values(ascending=False).head(5)
