@@ -6,31 +6,34 @@ from streamlit_folium import st_folium
 from folium import Choropleth
 from pymongo import MongoClient
 
+# Configuración de la página
+st.set_page_config(page_title="Mapa", layout="wide")
+st.title("🗺️ Mapa Interactivo - Víctimas por Departamento")
+
 # Conexión a MongoDB
 client = MongoClient("mongodb+srv://elianarm:20062004@cluster0.9daxwsg.mongodb.net/?retryWrites=true&w=majority")
 db = client["Proy1_Dataviz_Mongo"]
 collection = db["hechos_victimizantes_col"]
 
-# Leer los datos
-data = pd.DataFrame(list(collection.find({}, {"_id": 0})))
+# Filtro lateral de año
+st.sidebar.header("Filtros")
+años = sorted(collection.distinct("Ano"))
+año_sel = st.sidebar.selectbox("Selecciona un año para el mapa", años)
 
-# Configuración
-st.set_page_config(page_title="Mapa", layout="wide")
-st.title("🗺️ Mapa Interactivo - Víctimas por Departamento")
+# Consultar solo los datos de ese año
+data = pd.DataFrame(list(collection.find(
+    {"Ano": año_sel},
+    {"_id": 0}
+)))
 
-# Asegurar nombres en mayúsculas
+# Asegurar nombres en mayúsculas y limpiar datos
 data["DEPARTAMENTO_OCU"] = data["DEPARTAMENTO_OCU"].str.upper()
 data = data[data["DEPARTAMENTO_OCU"].notna()]
 data["Ano"] = data["Ano"].astype(int)
 
-# Filtro por año
-anios = sorted(data["Ano"].dropna().unique())
-anio_sel = st.selectbox("Selecciona un año", anios)
-
 # Agrupar por departamento
 mapa_data = (
-    data[data["Ano"] == anio_sel]
-    .groupby("DEPARTAMENTO_OCU")["total"]
+    data.groupby("DEPARTAMENTO_OCU")["total"]
     .sum()
     .reset_index()
 )
@@ -38,7 +41,7 @@ mapa_data = (
 # Leer GeoJSON de Colombia
 colombia_geo = gpd.read_file("https://raw.githubusercontent.com/lihkir/Uninorte/main/AppliedStatisticMS/DataVisualizationRPython/Lectures/Python/PythonDataSets/Colombia.geo.json")
 
-# Unir con shapefile
+# Unir datos del CSV con el mapa
 colombia_geo_merged = colombia_geo.merge(
     mapa_data, left_on="NOMBRE_DPT", right_on="DEPARTAMENTO_OCU", how="left"
 )
@@ -48,7 +51,7 @@ colombia_geo_merged["total"] = colombia_geo_merged["total"].fillna(0)
 centro = [4.5709, -74.2973]
 m = folium.Map(location=centro, zoom_start=5.2)
 
-# Coropletas
+# Agregar coropletas
 Choropleth(
     geo_data=colombia_geo_merged.__geo_interface__,
     data=colombia_geo_merged,
@@ -60,7 +63,7 @@ Choropleth(
     legend_name="Número de Víctimas"
 ).add_to(m)
 
-# Etiquetas
+# Agregar etiquetas de cantidad en los departamentos
 for _, row in colombia_geo_merged.iterrows():
     if row["total"] > 0:
         folium.Marker(
@@ -69,5 +72,5 @@ for _, row in colombia_geo_merged.iterrows():
             popup=f"{row['NOMBRE_DPT']}: {int(row['total'])} víctimas"
         ).add_to(m)
 
-# Mostrar en Streamlit
+# Mostrar mapa en Streamlit
 st_folium(m, width=1000, height=550)

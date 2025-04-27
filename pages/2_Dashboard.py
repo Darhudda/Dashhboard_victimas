@@ -8,16 +8,26 @@ client = MongoClient("mongodb+srv://elianarm:20062004@cluster0.9daxwsg.mongodb.n
 db = client["Proy1_Dataviz_Mongo"]
 collection = db["hechos_victimizantes_col"]
 
-# Cargar datos
-data = pd.DataFrame(list(collection.find()))
-data["_id"] = data["_id"].astype(str)
-
 # Configuración de página
 st.set_page_config(page_title="Dashboard Hechos Victimizantes", layout="wide")
 st.title("Dashboard de Hechos Victimizantes en Colombia")
 st.markdown("---")
 
-# === KPIs Mejorados en Tarjetas (Versión más pequeña y elegante) ===
+# Sidebar para filtros
+st.sidebar.header("Filtros")
+años = sorted(collection.distinct("Ano"))
+año_sel = st.sidebar.selectbox("Selecciona un año para el dashboard", años)
+
+# Cargar solo los datos del año seleccionado
+data = pd.DataFrame(list(collection.find(
+    {"Ano": año_sel},
+    {"_id": 0}
+)))
+
+# Crear data_filtrada (para que funcione todo después)
+data_filtrada = data.copy()
+
+# === KPIs Mejorados en Tarjetas ===
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -47,25 +57,14 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
 
-# --------------------------------------------------------------------------------------------------------------------------------------------
-# === Filtros en el sidebar ===
-st.sidebar.header("Filtros")
-
-# Filtro de año
-años = sorted(data["Ano"].dropna().unique())
-año_sel = st.sidebar.selectbox("Selecciona un año", años, key="filtro_año")
-
-# Filtro de hecho victimizante
+# --------------------------------------------------------------------
+# Filtro adicional de hecho victimizante
 hechos = ["General"] + sorted(data["HECHO"].dropna().unique())
 hecho_sel = st.sidebar.selectbox("Selecciona un hecho victimizante (o General)", hechos, key="filtro_hecho")
 
-# Aplicar filtro de año
-data_filtrada = data[data["Ano"] == año_sel]
-#-------------------------------------------------------------------------------------------------------------------------------------------
-
+# === Gráficos principales ===
 col4, col5 = st.columns(2)
 
-# === Serie de tiempo con filtro por hecho victimizante ===
 with col4:
     st.subheader("Serie de Tiempo: Víctimas Totales por Año")
 
@@ -74,19 +73,16 @@ with col4:
     else:
         serie = data[data["HECHO"] == hecho_sel].groupby("Ano")["total"].sum().reset_index()
 
-    # Filtrar solo hasta el año 2025
     serie = serie[pd.to_numeric(serie["Ano"], errors="coerce").notnull()]
     serie["Ano"] = serie["Ano"].astype(int)
     serie = serie[serie["Ano"] <= 2025]
 
-    # Gráfico
     fig = px.line(serie, x="Ano", y="total", markers=True,
-                labels={"Ano": "Año", "total": "Total de Víctimas"},
-                title=f"Serie de Tiempo - {hecho_sel}")
+                  labels={"Ano": "Año", "total": "Total de Víctimas"},
+                  title=f"Serie de Tiempo - {hecho_sel}")
     st.plotly_chart(fig, use_container_width=True)
 
 with col5:
-    # === Gráfico Top 5 hechos victimizantes (MongoDB) ===
     top_hechos_mongo = collection.aggregate([
         {"$group": {"_id": "$HECHO", "total": {"$sum": "$total"}}},
         {"$sort": {"total": -1}},
@@ -100,9 +96,7 @@ with col5:
                             height=400)
     st.plotly_chart(fig_top_hechos, use_container_width=True)
 
-
-
-# === Gráficos en línea: hechos y departamentos ===
+# === Gráficos secundarios ===
 col6, col7 = st.columns(2)
 
 with col6:
@@ -119,7 +113,7 @@ with col7:
                  labels={"x": "Departamento", "y": "N° de víctimas"})
     st.plotly_chart(fig, use_container_width=True)
 
-# === Gráficos en línea: desplazamiento y municipios ===
+# === Gráficos desplazamiento y municipios ===
 col8, col9 = st.columns(2)
 
 with col8:
@@ -134,4 +128,3 @@ with col9:
     fig = px.bar(top_municipios, x=top_municipios.index, y=top_municipios.values,
                  labels={"x": "Municipio", "y": "N° de víctimas"})
     st.plotly_chart(fig, use_container_width=True)
-
