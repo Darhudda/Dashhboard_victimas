@@ -62,6 +62,10 @@ elif selected == "Mapa":
 elif selected == "Dashboard":
     st.switch_page("pages/2_Dashboard.py")
 
-# Página Consultas
+# Página Consultas Mongo
 elif selected == "Consultas":
-    st.switch_page("pages/3_Consultas.py")
+    st.switch_page("pages/3_Consultas_Mongo.py")
+
+# Página Consultas Postgres
+elif selected == "Consultas":
+    st.switch_page("pages/4_Consultas_Postgres.py")
